@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <form role="form">
+    <div class="form">
 
       <div class="form-group">
         <label>Address</label>
@@ -14,8 +14,8 @@
 
       <div class="form-group">
         <div class="input-group">
-          <span class="input-group-addon">Token name</span>
-          <input type="text" class="form-control" v-model="VPM.token_name">
+          <input type="text" class="form-control" v-model="VPM.token_name" placeholder="Token Name">
+          <span class="input-group-addon" @click="getTokenFromLocalStorage">Get it!</span>
         </div>
         <textarea class="form-control">{{ VPM.token }}</textarea>
       </div>
@@ -27,8 +27,9 @@
       </div>
 
       <div class="form-group">
-        <button v-for="item in methods" class="btn" v-bind:class="[item.class]" @click="send(item.name)">{{item.name}}</button>
-        
+        <button v-for="item in methods" class="btn" v-bind:class="[item.class]" @click="send(item.name)">{{item.name}}
+        </button>
+
         <!--<button class="btn btn-default" @click="send(1)">GET</button>
         <button class="btn btn-primary"  @click="send(2)">POST</button>
         <button class="btn btn-success" @click="send(3)">PUT</button>
@@ -37,14 +38,14 @@
       </div>
 
       <div class="form-group">
-        <label>Status <span class="">{{ VPM.status }}</span></label>
+        <label>Status code:{<span class="">{{ VPM.status }}</span>} text:{<span>{{ VPM.status_text }}</span>}</label>
       </div>
 
       <div class="form-group">
         <label>Content</label>
         <textarea class="form-control" rows="5">{{ VPM.content }}</textarea>
       </div>
-    </form>
+    </div>
   </div>
 </template>
 
@@ -54,11 +55,18 @@
 
   export default {
     data () {
+      let token = window.localStorage.token
       return {
         VPM: {
+          headers: {
+            'content-type': 'application/json',
+            'cache-control': 'no-cache'
+          },
           content: 'test',
           status: '000',
-          token_name: 'token'
+          status_text: 'prepared',
+          token_name: 'token',
+          token: token
         },
         methods: [{
           'name': 'GET',
@@ -81,13 +89,33 @@
     methods: {
       getTokenFromLocalStorage: function () {
         var tokenName = this.VPM.token_name
-        this.$set('VPM.token', window.localStorage[tokenName])
+//        this.$set('VPM.token', window.localStorage[tokenName])
+        this.VPM.token = window.localStorage[tokenName]
+        console.log(this.VPM.token)
       },
-      sentRequest: function () {
-        //
+      sentRequest: function (method) {
+        let vpm = this.VPM
+        this.$http({
+          method: method,
+          url: vpm.url,
+          data: vpm.data,
+          headers: vpm.headers,
+          emulateJSON: true
+        }).then((response) => {
+          let vpm = this.VPM
+          vpm.status = response.status
+          vpm.status_text = response.statusText
+          let body = response.body
+          vpm.content = body
+          console.log(body)
+        }, (response) => {
+          console.log(response)
+        })
       },
       send: function (method) {
+        this.sentRequest(method)
         console.log(method)
+        console.log(this.VPM.data)
       }
     }
   }
